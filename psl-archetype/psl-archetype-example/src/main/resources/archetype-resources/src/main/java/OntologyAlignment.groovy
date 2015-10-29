@@ -1,6 +1,6 @@
 #set( $symbol_pound = '#' )
 #set( $symbol_dollar = '$' )
-#set( $symbol_escape = '\' )
+#set( $symbol_escape = '\\' )
 /*
  * This file is part of the PSL software.
  * Copyright 2011-2015 University of Maryland
@@ -108,9 +108,9 @@ m.add rule : ~similar(A,B), weight: 1;
 def dir = 'data'+java.io.File.separator+'ontology'+java.io.File.separator;
 def trainDir = dir+'train'+java.io.File.separator;
 
-Partition trainObservations = new Partition(0);
-Partition trainPredictions = new Partition(1);
-Partition truth = new Partition(2);
+Partition trainObservations = data.getPartition("trainObservations");
+Partition trainPredictions = data.getPartition("trainPredictions");
+Partition truth = data.getPartition("truth");
 
 for (Predicate p : [domainOf,fromOntology,name,hasType,rangeOf,subclass])
 {
@@ -140,8 +140,8 @@ println m
 /////////////////////////// test setup //////////////////////////////////
 
 def testDir = dir+'test'+java.io.File.separator;
-Partition testObservations = new Partition(3);
-Partition testPredictions = new Partition(4);
+Partition testObservations = data.getPartition("testObservations");
+Partition testPredictions = data.getPartition("testPredictions");
 for (Predicate p : [domainOf,fromOntology,name,hasType,rangeOf,subclass]) 
 {
 	insert = data.getInserter(p, testObservations);

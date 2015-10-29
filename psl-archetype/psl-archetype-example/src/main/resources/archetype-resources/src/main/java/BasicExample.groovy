@@ -1,6 +1,6 @@
 #set( $symbol_pound = '#' )
 #set( $symbol_dollar = '$' )
-#set( $symbol_escape = '\' )
+#set( $symbol_escape = '\\' )
 /*
  * This file is part of the PSL software.
  * Copyright 2011-2015 University of Maryland
@@ -20,6 +20,7 @@
  */
 package ${package};
 
+import java.lang.annotation.*;
 import java.text.DecimalFormat;
 
 import edu.umd.cs.psl.application.inference.MPEInference;
@@ -150,8 +151,8 @@ println m;
  * can manually insert data or use the insertion helpers to easily implement
  * custom data loaders.
  */
-def evidencePartition = new Partition(0);
-def insert = data.getInserter(name, evidencePartition);
+def evidencePartition = data.getPartition("evidencePartition");
+def insert = data.getInserter(Name, evidencePartition);
 
 /* Social Network A */
 insert.insert(1, "John Braker");
@@ -195,7 +196,7 @@ InserterUtils.loadDelimitedData(insert, dir+"sn_knows.txt");
  * observed, and leave the predicate
  * SamePerson open to infer its atoms' values.
  */
-def targetPartition = new Partition(1);
+def targetPartition = data.getPartition("targetPartition");
 Database db = data.getDatabase(targetPartition, [Network, Name, Knows] as Set, evidencePartition);
 
 /*
@@ -242,7 +243,7 @@ for (GroundAtom atom : Queries.getAllAtoms(db, SamePerson))
  * evidence data from which we can learn. In our example, that means we need to
  * specify the 'true' alignment, which we now load into another partition.
  */
-Partition trueDataPartition = new Partition(2);
+Partition trueDataPartition = data.getPartition("trueDataPartition");
 insert = data.getInserter(SamePerson, trueDataPartition)
 InserterUtils.loadDelimitedDataTruth(insert, dir + "sn_align.txt");
 
@@ -273,7 +274,7 @@ println m
 /*
  * Loads evidence
  */
-Partition evidencePartition2 = new Partition(3);
+Partition evidencePartition2 = data.getPartition("evidencePartition2");
 
 insert = data.getInserter(Network, evidencePartition2)
 InserterUtils.loadDelimitedData(insert, dir+"sn2_network.txt");
@@ -287,7 +288,7 @@ InserterUtils.loadDelimitedData(insert, dir+"sn2_knows.txt");
 /*
  * Populates targets
  */
-def targetPartition2 = new Partition(4);
+def targetPartition2 = data.getPartition("targetPartition2");
 Database db2 = data.getDatabase(targetPartition2, [Network, Name, Knows] as Set, evidencePartition2);
 
 usersA.clear();
@@ -329,7 +330,14 @@ db2.close();
  * The package edu.umd.cs.psl.ui.functions.textsimilarity contains additional and
  * more sophisticated string similarity functions.
  */
-class MyStringSimilarity implements ExternalFunction {
+
+ /*
+class MyStringSimilarity extends
+
+
+
+
+ ExternalFunction {
 	
 	@Override
 	public int getArity() {
@@ -346,4 +354,4 @@ class MyStringSimilarity implements ExternalFunction {
 		return args[0].toString().equals(args[1].toString()) ? 1.0 : 0.0;
 	}
 	
-}
+} */
