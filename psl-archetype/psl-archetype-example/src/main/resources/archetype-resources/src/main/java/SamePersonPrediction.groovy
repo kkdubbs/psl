@@ -2,6 +2,24 @@
 #set( $symbol_dollar = '$' )
 #set( $symbol_escape = '\' )
 
+/*
+* This file is part of the PSL software.
+* Copyright 2011-2015 University of Maryland
+* Copyright 2013-2015 The Regents of the University of California
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+
 package ${package};
 
 import java.lang.annotation.*;
@@ -25,6 +43,7 @@ import edu.umd.cs.psl.groovy.PredicateConstraint;
 import edu.umd.cs.psl.groovy.SetComparison;
 import edu.umd.cs.psl.model.argument.ArgumentType;
 import edu.umd.cs.psl.model.argument.GroundTerm;
+import edu.umd.cs.psl.model.predicate.Predicate;
 import edu.umd.cs.psl.model.argument.UniqueID;
 import edu.umd.cs.psl.model.argument.Variable;
 import edu.umd.cs.psl.model.atom.GroundAtom;
@@ -35,6 +54,11 @@ import edu.umd.cs.psl.util.database.Queries;
 import edu.umd.cs.psl.model.kernel.CompatibilityKernel
 import edu.umd.cs.psl.model.parameters.PositiveWeight
 import edu.umd.cs.psl.model.parameters.Weight
+
+/*
+ * In this example program, the task is to align two social networks, by
+ * identifying which pairs of users are the same across networks.
+ */
 
 class MyStringSimilarity implements ExternalFunction {
 	
@@ -69,16 +93,12 @@ class SamePersonPrediction {
 
 		public String dataDirectory; 
 
-		Set<Partition> closedTest;
-		Set<Partition> closedTrain;
+		Set<Predicate> closedTest;
+		Set<Predicate> closedTrain;
 
-		public Partition trainRead;
-		public Partition trainWrite;
-		public Partition trainLabels;
-
-		public Partition testRead;
-		public Partition testWrite;
-		public Partition testLabels;
+		Map<Predicate,String> socialNetwork1;
+		Map<Predicate,String> socialNetwork2;
+		Map<Predicate,String> truthFileMap;
 
 	}
 
@@ -87,9 +107,9 @@ class SamePersonPrediction {
     	SamePersonPredictionExperiment config = new SamePersonPredictionExperiment();
     	config.cm = ConfigManager.getManager();
     	config.cb = config.cm.getBundle("basic-example");
-    	config.initialWeight = 5.0;
-		config.doWeightLearning = true;
-    	config.createNewDataStore = true;
+    	config.initialWeight = config.cb.getDouble("initialRuleWeight", 1.0);
+		config.doWeightLearning = config.cb.getBoolean("doWeightLearning", true);
+    	config.createNewDataStore = config.cb.getBoolean("createNewDataStore", true);
     	config.dataDirectory = 'data'+java.io.File.separator+'sn'+java.io.File.separator;
 
     	
@@ -104,14 +124,20 @@ class SamePersonPrediction {
     	return data;
     }
 
+    def loadPredicateFileMaps(config){
+    	config.socialNetwork1 = [((Predicate)Network):"sn_network.txt",
+	                 ((Predicate)Knows):"sn_knows.txt"];
 
-    def defineModel(config, data, m){
-		/*
-		 * In this example program, the task is to align two social networks, by
-		 * identifying which pairs of users are the same across networks.
-		 */
+	    config.socialNetwork2 = [((Predicate)Name):"sn2_names.txt",
+	                 ((Predicate)Network):"sn2_network.txt",
+	                 ((Predicate)Knows):"sn2_knows.txt"];
 
-		/* 
+	    config.truthFileMap = [((Predicate)SamePerson):"sn_align.txt"];
+
+    }
+
+    def definePredicates(config, data, m){
+    	/* 
 		 * We create four predicates in the model, giving their names and list of argument types
 		 */
 
@@ -129,6 +155,13 @@ class SamePersonPrediction {
 
 		/* Also, try: new MyStringSimilarity(), see end of file */
 
+		/* Finally, we define our set of closed predicates for train and test */
+		config.closedTest = [Network, Name, Knows] as Set;
+		config.closedTrain = [Network, Name, Knows, SamePerson] as Set;
+
+    }
+
+    def defineModel(config, data, m){
 		/* 
 		 * Having added all the predicates we need to represent our problem, we finally
 		 * add some rules into the model. Rules are defined using a logical syntax.
@@ -164,7 +197,8 @@ class SamePersonPrediction {
 		 * Next, we define some constraints for our model. In this case, we restrict that
 		 * each person can be aligned to at most one other person in the other social network.
 		 * To do so, we define two partial functional constraints where the latter is on
-		 * the inverse. We also say that samePerson must be symmetric,
+		 * the inverse. Please read more about PartialFunctional constraints on our wiki.
+		 We also say that samePerson must be symmetric,
 		 * i.e., samePerson(p1, p2) == samePerson(p2, p1).
 		 */
 		m.add PredicateConstraint.PartialFunctional, on : SamePerson
@@ -178,24 +212,13 @@ class SamePersonPrediction {
 		 */
 		m.add rule: ~SamePerson(A,B), weight: 1
 
-		config.closedTest = [Network, Name, Knows] as Set;
-		config.closedTrain = [Network, Name, Knows] as Set;
-
     }
 
-    def loadData(data, config){
-		 /* 
-		 * We now insert data into our DataStore. All data is stored in a partition.
-		 * We put all the observations into their own partition.
-		 * 
-		 * We can use insertion helpers for a specified predicate. Here we show how one
-		 * can manually insert data or use the insertion helpers to easily implement
-		 * custom data loaders.
-		 */
-		Partition evidencePartition = data.getPartition("read_evidence");
-		def insert = data.getInserter(Name, evidencePartition);
+    def loadEvidenceFromValues(data, evidencePartition){
 
-		/* Social Network A */
+    	def insert = data.getInserter(Name, evidencePartition);
+
+    	/* Social Network A */
 		insert.insert(1, "John Braker");
 		insert.insert(2, "Mr. Jack Ressing");
 		insert.insert(3, "Peter Larry Smith");
@@ -213,62 +236,44 @@ class SamePersonPrediction {
 		insert.insert(16, "Gustav Heinrich Gans");
 		insert.insert(17, "Otto v. Lautern");
 
-		/*
+
+    }
+
+    def loadPredicateFromFile(data, config, evidencePartition, predicateFileMap){
+
+    	/*
 		 * Of course, we can also load data directly from tab delimited data files.
 		 */
+
 		def dir = config.dataDirectory;
 
-		insert = data.getInserter(Network, evidencePartition)
-		InserterUtils.loadDelimitedData(insert, dir+"sn_network.txt");
+		for (Predicate p : predicateFileMap.keySet()){
+			def inserter = data.getInserter(p, evidencePartition);
+			def filename = predicateFileMap[p];
 
-		insert = data.getInserter(Knows, evidencePartition)
-		InserterUtils.loadDelimitedData(insert, dir+"sn_knows.txt");
+			InserterUtils.loadDelimitedData(inserter, dir+filename);
+		}
 
-		config.testRead = evidencePartition;
-		config.trainRead = evidencePartition;
-
-		/* 
-		* Later, we'll be using labeled training data to learn weights 
-		* so we'll load these now
-		*/
-
-		Partition trainingLabels = data.getPartition("train_labels");
-		insert = data.getInserter(SamePerson, trainingLabels);
-		InserterUtils.loadDelimitedDataTruth(insert, dir + "sn_align.txt");
-		config.trainLabels = trainingLabels;
-
-		config.testWrite = data.getPartition("test_write");
-		config.trainWrite = data.getPartition("train_write");
     }
 
-    def updateInferenceData(data, config){
+    def loadPredicateFromFileWithTruth(data, config, evidencePartition, predicateFileMap){
 
-    	data.deletePartition(data.getPartition("read_evidence"));
-		data.deletePartition(config.testWrite);
+    	/*
+		 * we can also load data directly from tab delimited data files with truth values specified.
+		 */
+
+		def dir = config.dataDirectory;
+
+		for (Predicate p : predicateFileMap.keySet()){
+			def inserter = data.getInserter(p, evidencePartition);
+			def filename = predicateFileMap[p];
+
+			InserterUtils.loadDelimitedDataTruth(inserter, dir+filename);
+		}
 		
-		Partition evidencePartition = data.getPartition("test_evidence");
-		def dir = config.dataDirectory;
-
-		def insert = data.getInserter(Network, evidencePartition)
-		InserterUtils.loadDelimitedData(insert, dir+"sn2_network.txt");
-
-		insert = data.getInserter(Name, evidencePartition);
-		InserterUtils.loadDelimitedData(insert, dir+"sn2_names.txt");
-
-		insert = data.getInserter(Knows, evidencePartition);
-		InserterUtils.loadDelimitedData(insert, dir+"sn2_knows.txt");
-
-		config.testWrite = data.getPartition("test_write");
-		config.testRead = evidencePartition;
-
     }
 
-    def runInference(m, data, config, startIndex1, endIndex1, startIndex2, endIndex2){
-    	
-		def targetPartition = config.testWrite;
-		def evidencePartition = config.testRead;
-		Database db = data.getDatabase(targetPartition, config.closedTest, evidencePartition);
-
+    def populateDB(data, startIndex1, endIndex1, startIndex2, endIndex2, db){
 		/*
 		 * Before running inference, we have to add the target atoms to the database.
 		 * If inference (or learning) attempts to access an atom that is not in the database,
@@ -278,21 +283,26 @@ class SamePersonPrediction {
 		 * (DatabasePopulator) to create all possible SamePerson atoms between users of
 		 * each network.
 		 */
+
 		def popMap = getVariablePopulationMap(data, startIndex1, endIndex1, startIndex2, endIndex2);
 
 		DatabasePopulator dbPop = new DatabasePopulator(db);
 		dbPop.populate((SamePerson(UserA, UserB)).getFormula(), popMap);
 		dbPop.populate((SamePerson(UserB, UserA)).getFormula(), popMap);
 
-		/*
+    }
+
+    def runInference(m, data, config, targetPartition, evidencePartition, start1, end1, start2, end2){
+
+    	Database db = data.getDatabase(targetPartition, config.closedTest, evidencePartition);
+    	populateDB(data, start1, start2, end1, end2, db);
+
+    	/*
 		 * Now we can run inference
 		 */
 
 		MPEInference inferenceApp = new MPEInference(m, db, config.cb);
 		inferenceApp.mpeInference();
-		inferenceApp.close();
-
-
 
 		/*
 		 * Let's see the results
@@ -302,6 +312,7 @@ class SamePersonPrediction {
 		for (GroundAtom atom : Queries.getAllAtoms(db, SamePerson))
 			println atom.toString() + "${symbol_escape}t" + formatter.format(atom.getValue());
 
+		inferenceApp.close();
 		db.close();
 
     }
@@ -321,7 +332,7 @@ class SamePersonPrediction {
 		return popMap;
     }
 
-    def learnWeights(m, data, config, startIndex1, endIndex1, startIndex2, endIndex2){
+    def learnWeights(m, data, config, truthPartition, evidencePartition, targetPartition, start1, end1, start2, end2){
     	/* 
 		 * Now, we can learn the weights.
 		 * 
@@ -329,18 +340,10 @@ class SamePersonPrediction {
 		 * We then combine this database with the original database to learn.
 		 */
 
-		def trueDataPartition = config.trainLabels;
-		def trainTargetPartition = config.trainWrite;
-		def evidencePartition = config.trainRead;
+		Database distributionDB = data.getDatabase(targetPartition, config.closedTest, evidencePartition);
+		Database trueDataDB = data.getDatabase(truthPartition, config.closedTrain);
 
-		Database distributionDB = data.getDatabase(trainTargetPartition, config.closedTrain, evidencePartition);
-		Database trueDataDB = data.getDatabase(trueDataPartition, [samePerson] as Set);
-
-		def popMap = getVariablePopulationMap(data, startIndex1, endIndex1, startIndex2, endIndex2);
-
-		DatabasePopulator dbPop = new DatabasePopulator(distributionDB);
-		dbPop.populate((SamePerson(UserA, UserB)).getFormula(), popMap);
-		dbPop.populate((SamePerson(UserB, UserA)).getFormula(), popMap);
+		populateDB(data, start1, start2, end1, end2, distributionDB);
 
 		MaxLikelihoodMPE weightLearning = new MaxLikelihoodMPE(m, distributionDB, trueDataDB, config.cb);
 		weightLearning.learn();
@@ -349,13 +352,13 @@ class SamePersonPrediction {
 		distributionDB.close();
 		trueDataDB.close();
 
-		/*
+	   	/*
 		 * Let's have a look at the newly learned weights.
 		 */
+
 		println ""
 		println "Learned model:"
 		println m
-
     }
 
     static void main(String[] args){
@@ -364,14 +367,38 @@ class SamePersonPrediction {
 	    def data = spp.setupDataStore(config);
 	    PSLModel m = new PSLModel(spp, data);
 
+	    spp.definePredicates(config, data, m);
 	    spp.defineModel(config, data, m);
-	    spp.loadData(data, config);
-	    spp.runInference(m, data, config, 1, 8, 11, 18);
-	    spp.learnWeights(m, data, config, 1, 8, 11, 18);
 
-	    spp.updateInferenceData(data, config);
-	    spp.runInference(m, data, config, 21, 28, 31, 38);
+	    /*Let's first load evidence directly for our first social network*/
+	    Partition evidencePartition = data.getPartition("evidencePartition");
+	    spp.loadEvidenceFromValues(data, evidencePartition);
 
+	    /*Let's load data from file now. First, we set up our predicate --- filename map*/
+	    spp.loadPredicateFileMaps(config);
+	    
+	    spp.loadPredicateFromFile(data, config, evidencePartition, config.socialNetwork1);
+
+	    /*Let's see what happens when we run inference. First, we'll need an empty write partition*/
+	    Partition targetPartition = data.getPartition("targetPartition");
+	    spp.runInference(m, data, config, targetPartition, evidencePartition, 1, 8, 11, 18);
+
+
+	    /*Now let's try to learn the rule weights from training data
+	    *First we'll need to load the truth labels for training */
+	    Partition truthPartition = data.getPartition("truthPartition");
+	    spp.loadPredicateFromFileWithTruth(data, config, truthPartition, config.truthFileMap);
+
+	    spp.learnWeights(m, data, config, truthPartition, evidencePartition, targetPartition, 1, 8, 11, 18);
+
+
+	    /*Now let's load a new social network and run inference again!*/
+	    Partition evidencePartition2 = data.getPartition("evidencePartition2");
+	    Partition targetPartition2 = data.getPartition("targetPartition2");
+
+	    spp.loadPredicateFromFile(data, config, evidencePartition2, config.socialNetwork2);
+
+	    spp.runInference(m, data, config, targetPartition2, evidencePartition2, 21, 28, 31, 38);
     }
 
 
