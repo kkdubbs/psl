@@ -17,13 +17,10 @@
  */
 package org.linqs.psl.model.formula;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
+import org.apache.commons.collections.list.TreeList;
+import org.apache.commons.lang.StringUtils;
 import org.linqs.psl.database.Database;
 import org.linqs.psl.database.DatabaseQuery;
 import org.linqs.psl.model.atom.Atom;
@@ -304,6 +301,27 @@ public class FormulaAnalysis {
 					eventFramework.unregisterAtomEventListener(eventTypes, (StandardPredicate) p, k);
 				}
 			}
+		}
+
+		/**
+		 * DNF Clause machine parseable string
+		 *
+		 * @return pretty string of DNF Clause, that's more machine parsable
+		 */
+		@Override
+		public String toString() {
+
+			List<String> allLiterals = new ArrayList<>();
+
+			for (Atom posLit : getPosLiterals()) {
+				allLiterals.add(posLit.toString());
+			}
+
+			for (Atom negLit : getNegLiterals()) {
+				allLiterals.add("!" + negLit.toString());
+			}
+
+			return StringUtils.join(allLiterals, " || ");
 		}
 	}
 }

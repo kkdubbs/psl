@@ -60,6 +60,8 @@ import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver.Type;
 import org.linqs.psl.model.Model;
 import org.linqs.psl.model.atom.GroundAtom;
 import org.linqs.psl.model.predicate.StandardPredicate;
+import org.linqs.psl.model.rule.Rule;
+import org.linqs.psl.model.rule.logical.AbstractLogicalRule;
 import org.linqs.psl.model.term.Constant;
 import org.linqs.psl.parser.ModelLoader;
 import org.linqs.psl.reasoner.admm.ADMMReasonerFactory;
@@ -208,6 +210,16 @@ public class Launcher {
 		Model model = ModelLoader.load(data, modelFileReader);
 		log.debug(model.toString());
 		log.info("model:: loading:: ::done");
+
+		// Print out DNF rules
+		for (Rule r : model.getRules()) {
+			if (r instanceof AbstractLogicalRule) {
+				AbstractLogicalRule alr = (AbstractLogicalRule) r;
+				System.out.println(alr.toDNFString());
+				System.out.println("--");
+			}
+		}
+
 
 		/*
 		 * Create database, application, etc.

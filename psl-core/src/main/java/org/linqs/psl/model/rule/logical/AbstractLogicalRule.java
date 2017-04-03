@@ -85,6 +85,19 @@ abstract public class AbstractLogicalRule extends AbstractRule {
 		int numGrounded = groundFormula(atomManager, grs, res, null);
 		log.debug("Grounded {} instances of rule {}", numGrounded, this);
 	}
+
+	/**
+	 * Getter for DNFClause for logical rules
+	 *
+	 * @return the DNF Clause associated with this logical rule
+	 */
+	public DNFClause getDNFClause() {
+		return clause;
+	}
+
+	public String toDNFString() {
+		return getDNFClause().toString();
+	}
 	
 	protected int groundFormula(AtomManager atomManager, GroundRuleStore grs, ResultList res,  VariableAssignment var) {
 		int numGroundingsAdded = 0;
