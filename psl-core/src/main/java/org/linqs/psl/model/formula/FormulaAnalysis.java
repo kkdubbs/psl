@@ -313,15 +313,18 @@ public class FormulaAnalysis {
 
 			List<String> allLiterals = new ArrayList<>();
 
+			// Positive and negative printing is switched because internal form is the negated opposite:
+			// this is the desired output: a -> b ==> ~a | b
+			// it's represented here as: a -> b ==> ~(a | ~b)
 			for (Atom posLit : getPosLiterals()) {
-				allLiterals.add(posLit.toString());
+				allLiterals.add("~" + posLit.toString());
 			}
 
 			for (Atom negLit : getNegLiterals()) {
-				allLiterals.add("!" + negLit.toString());
+				allLiterals.add(negLit.toString());
 			}
 
-			return StringUtils.join(allLiterals, " || ");
+			return StringUtils.join(allLiterals, " | ");
 		}
 	}
 }

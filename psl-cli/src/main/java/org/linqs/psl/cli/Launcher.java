@@ -60,6 +60,7 @@ import org.linqs.psl.database.rdbms.driver.H2DatabaseDriver.Type;
 import org.linqs.psl.model.Model;
 import org.linqs.psl.model.atom.GroundAtom;
 import org.linqs.psl.model.predicate.StandardPredicate;
+import org.linqs.psl.model.rule.GroundRule;
 import org.linqs.psl.model.rule.Rule;
 import org.linqs.psl.model.rule.logical.AbstractLogicalRule;
 import org.linqs.psl.model.term.Constant;
@@ -235,6 +236,11 @@ public class Launcher {
 			
 			cb.setProperty(MPEInference.REASONER_KEY, new ADMMReasonerFactory());
 			MPEInference mpe = new MPEInference(model, database, cb);
+			System.out.println ("--");
+			for (GroundRule gr: mpe.getReasoner().getGroundKernels()){
+				System.out.println(gr.toString());
+			}
+			System.out.println ("--");
 			FullInferenceResult result = mpe.mpeInference();
 			log.info("operation::infer inference:: ::done");
 			
