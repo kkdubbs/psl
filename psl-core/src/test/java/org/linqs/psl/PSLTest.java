@@ -77,6 +77,34 @@ public class PSLTest {
 		}
 	}
 
+	/**
+	 * Compare two Arrays of strings for equality.
+	 *
+	 * If, for some reason, the content but not exact format of the output is not known;
+	 * then you can use |alphabetize| to sort all
+	 * characters in both strings (actual and expected) before comparing.
+	 * Only alphabetize if it is really necessary because it can hide errors in order that are expected.
+	 */
+	public static void compareStrings(String[] expected, String[] actual, boolean alphabetize) {
+		assertEquals("Size mismatch.", expected.length, actual.length);
+
+		for (int i = 0; i < expected.length; i++) {
+			if (alphabetize) {
+				assertEquals(
+					String.format("String %d mismatch. (Before alphabetize) expected: [%s], found [%s].", i, expected[i], actual[i]),
+					sort(expected[i]),
+					sort(actual[i])
+				);
+			} else {
+				assertEquals(
+					String.format("String %d mismatch. Expected: [%s], found [%s].", i, expected[i], actual[i]),
+					expected[i],
+					actual[i]
+				);
+			}
+		}
+	}
+
 	private static String sort(String string) {
 		char[] chars = string.	toCharArray();
 		Arrays.sort(chars);
