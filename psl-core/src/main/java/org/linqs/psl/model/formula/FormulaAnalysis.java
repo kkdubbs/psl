@@ -64,7 +64,7 @@ public class FormulaAnalysis {
 		Formula[] rawClauses;
 		if (formula instanceof Disjunction) {
 			Disjunction disj = ((Disjunction) formula).flatten();
-			rawClauses = new Formula[disj.getNoFormulas()];
+			rawClauses = new Formula[disj.length()];
 			for (int i = 0; i < rawClauses.length; i++)
 				rawClauses[i] = disj.get(i);
 		}
@@ -86,7 +86,7 @@ public class FormulaAnalysis {
 			 */
 			if (rawClauses[i] instanceof Conjunction) {
 				Conjunction c = ((Conjunction) rawClauses[i]).flatten();
-				for (int j = 0; j < c.getNoFormulas(); j++) {
+				for (int j = 0; j < c.length(); j++) {
 					if (c.get(j) instanceof Atom) {
 						posLiterals.add((Atom) c.get(j));
 					}
