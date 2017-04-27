@@ -64,7 +64,7 @@ public class FormulaAnalysis {
 		Formula[] rawClauses;
 		if (formula instanceof Disjunction) {
 			Disjunction disj = ((Disjunction) formula).flatten();
-			rawClauses = new Formula[disj.getNoFormulas()];
+			rawClauses = new Formula[disj.length()];
 			for (int i = 0; i < rawClauses.length; i++)
 				rawClauses[i] = disj.get(i);
 		}
@@ -86,7 +86,7 @@ public class FormulaAnalysis {
 			 */
 			if (rawClauses[i] instanceof Conjunction) {
 				Conjunction c = ((Conjunction) rawClauses[i]).flatten();
-				for (int j = 0; j < c.getNoFormulas(); j++) {
+				for (int j = 0; j < c.length(); j++) {
 					if (c.get(j) instanceof Atom) {
 						posLiterals.add((Atom) c.get(j));
 					}
@@ -310,21 +310,17 @@ public class FormulaAnalysis {
 		 */
 		@Override
 		public String toString() {
-
 			List<String> allLiterals = new ArrayList<>();
 
-			// Positive and negative printing is switched because internal form is the negated opposite:
-			// this is the desired output: a -> b ==> ~a | b
-			// it's represented here as: a -> b ==> ~(a | ~b)
 			for (Atom posLit : getPosLiterals()) {
-				allLiterals.add("~" + posLit.toString());
+				allLiterals.add(posLit.toString());
 			}
 
 			for (Atom negLit : getNegLiterals()) {
-				allLiterals.add(negLit.toString());
+				allLiterals.add("~" + negLit.toString());
 			}
 
-			return StringUtils.join(allLiterals, " | ");
+			return StringUtils.join(allLiterals, " & ");
 		}
 	}
 }
