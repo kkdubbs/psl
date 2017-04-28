@@ -58,10 +58,15 @@ public class FormulaAnalysis {
 		f = formula;
 		
 		/*
-		 * Converts the Formula to Disjunctive Normal Form and collects the clauses
+		 * Converts the Formula (which for some reason is also called DNF)
+		 * to Disjunctive Normal Form and collects the clauses
 		 */
 		formula = formula.getDNF();
 		Formula[] rawClauses;
+		/**
+		 * if formulas is a disjunction, flatten it so that rawClauses
+		 * only contains conjunctions, atoms, or negated atoms
+		 */
 		if (formula instanceof Disjunction) {
 			Disjunction disj = ((Disjunction) formula).flatten();
 			rawClauses = new Formula[disj.length()];

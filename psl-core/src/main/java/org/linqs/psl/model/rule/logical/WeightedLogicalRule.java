@@ -64,8 +64,9 @@ public class WeightedLogicalRule extends AbstractLogicalRule implements Weighted
 				+ ((squared) ? " ^2" : "");
 	}
 
-	public String toDNFString() {
-		return "" + weight.getWeight() + ": " + getDNFClause()
+	@Override
+	public String toFormulaToDNFString() {
+		return "" + weight.getWeight() + ": " + super.toFormulaToDNFString()
 				+ ((squared) ? " ^2" : "");
 	}
 	

@@ -27,6 +27,8 @@ import org.junit.Test;
 import org.linqs.psl.PSLTest;
 import org.linqs.psl.TestModelFactory;
 import org.linqs.psl.model.atom.QueryAtom;
+import org.linqs.psl.model.rule.Rule;
+import org.linqs.psl.model.rule.logical.WeightedLogicalRule;
 import org.linqs.psl.model.term.Variable;
 
 /**

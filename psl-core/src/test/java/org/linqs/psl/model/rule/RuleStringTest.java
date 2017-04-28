@@ -278,6 +278,20 @@ public class RuleStringTest {
 		PSLTest.compareGroundRules(expected, rule, store);
 	}
 
+	@Test
+	public void testDNFRuleString() {
+
+	    StandardPredicate anotherPredicate = PredicateFactory.getFactory().createStandardPredicate("AnotherPredicate", ConstantType.UniqueID);
+		Formula simpleImplication;
+        simpleImplication = new Implication(
+                new QueryAtom(singlePredicate, new Variable("A")),
+                new QueryAtom(anotherPredicate, new Variable("A"))
+        );
+        WeightedLogicalRule rule = new WeightedLogicalRule(simpleImplication, 10, true);
+
+		assertEquals("10.0: ( ~( SINGLEPREDICATE(A) ) | ANOTHERPREDICATE(A) ) ^2", rule.toFormulaToDNFString());
+	}
+
 	@After
 	public void cleanup() {
 		database.close();

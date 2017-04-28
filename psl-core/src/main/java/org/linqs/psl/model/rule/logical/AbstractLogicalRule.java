@@ -87,17 +87,37 @@ abstract public class AbstractLogicalRule extends AbstractRule {
 	}
 
 	/**
-	 * Getter for DNFClause for logical rules
+	 * Getter for DNFClause for logical rules, note that this is the negated form of original formula!
 	 *
-	 * @return the DNF Clause associated with this logical rule
+	 * @return the DNF Clause associated with this logical rule, which is the negated form of original formula
 	 */
 	public DNFClause getDNFClause() {
 		return clause;
 	}
 
-	public String toDNFString() {
-		return getDNFClause().toString();
+	/**
+	 * When this rule is first created, the DNFClause is created as the negated form of the original
+	 * formula. This means the negated form of the rule is what is solved.
+	 *
+	 * This function returns the DNF form of the original formula (not the negated version)
+	 *
+	 * @return String representation of the DNF of the original Formula
+	 */
+	public String toFormulaToDNFString() {
+
+		return getFormula().getDNF().toString();
 	}
+
+	/**
+	 * Returns the original formula used when creating this rule
+	 *
+	 * @return
+	 */
+	public Formula getFormula() {
+		return formula;
+	}
+
+
 	
 	protected int groundFormula(AtomManager atomManager, GroundRuleStore grs, ResultList res,  VariableAssignment var) {
 		int numGroundingsAdded = 0;
